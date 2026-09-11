@@ -36,7 +36,10 @@
 | `opt_routing.py` | M1(仅LM) vs M2(+监督) 路由稳定性（多 seed） |
 | `m3_test.py` | 线性门 vs 非线性门（相近领域）反证 |
 | `m4_test.py` | 扩展：4 领域 → 4 专家路由 |
+| `eval_generation.py` | 端到端生成质量：专家能力(loss) vs 路由选择 + 短文本生成 |
 | `qwen_moe.py` | 核心 MoE 结构（专家同源初始化 / 路由模式 / 输入捕获） |
+| `csrc/` + `build_moe_ops.py` | C++ 底层算子（router+expert MLP，CPU/CUDA 自动分发） |
+| `test_moe_ops.py` | C++ 算子正确性对齐 + CPU benchmark |
 
 ## 复现
 
@@ -46,6 +49,8 @@ python3 ablation_gate.py
 python3 opt_routing.py
 python3 m3_test.py
 python3 m4_test.py
+python3 eval_generation.py
+python3 test_moe_ops.py       # 会 JIT 编译 C++ 算子（无 CUDA 时 CPU-only）
 ```
 
 > 详细数据与结论见报告 `技术报告_域隔离双专家MoE路由.md`。
