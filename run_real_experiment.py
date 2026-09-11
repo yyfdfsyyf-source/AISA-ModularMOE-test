@@ -12,6 +12,7 @@ import random
 import time
 
 import torch
+import torch.nn.functional as F
 
 from qwen_moe import build_model, EXPERT_LAYER
 
@@ -22,8 +23,8 @@ torch.manual_seed(0)
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-N_TRAIN_PER_DOMAIN = 150   # 每领域高级采样训练条数（控制 CPU 时长）
-N_ROUTE_STEPS = 25         # 路由对齐步数
+N_TRAIN_PER_DOMAIN = 150   # 每领域高级采样训练条数
+N_ROUTE_STEPS = 80         # 路由对齐步数（领域监督，80=泛化最佳点；过高会过拟合）
 LR_EXP = 3e-4
 LR_GATE = 3e-3
 
@@ -112,7 +113,7 @@ def main():
 
     # ============ 阶段2 路由对齐: 冻结专家训 gate ============
     print("\n" + "=" * 60)
-    print("[阶段2] 路由对齐: 冻结专家, 只训 gate (软加权)")
+    print("[阶段2] 路由对齐: 冻结专家, 只用领域监督训 gate (已知域标签)")
     print("=" * 60)
     for e in moe.experts:
         for p in e.parameters():
@@ -126,11 +127,21 @@ def main():
     t0 = time.time()
     for ep in range(N_ROUTE_STEPS):
         gate_opt.zero_grad()
-        t, _ = mixed[ep % len(mixed)]
-        out = m(t.unsqueeze(0), labels=t.unsqueeze(0))
-        out.loss.backward()
+        t, lab = mixed[ep % len(mixed)]
+        # 捕获 MoE 输入，直接用 gate 概率做领域分类监督
+        captured = []
+        handle = moe.register_forward_pre_hook(
+            lambda mod, args: captured.append(args[0].detach().clone())
+        )
+        _ = m(t.unsqueeze(0), labels=t.unsqueeze(0))
+        x = captured[0]
+        handle.remove()
+        probs = moe.capture_input(x)                    # (1,T,2) 已归一化概率
+        lab_t = torch.tensor(lab).long().expand(probs.shape[1]).to(DEVICE)
+        loss_sup = F.nll_loss(probs.log().reshape(-1, 2), lab_t)   # probs 已 softmax-normalize
+        loss_sup.backward()
         gate_opt.step()
-    print(f"  gate 对齐 {N_ROUTE_STEPS} 步总loss~{out.loss.item():.3f} ({time.time()-t0:.0f}s)")
+    print(f"  gate 领域监督对齐 {N_ROUTE_STEPS} 步 监督loss~{loss_sup.item():.3f} ({time.time()-t0:.0f}s)")
 
     # ============ 阶段3 测试路由正确率 ============
     print("\n" + "=" * 60)
