@@ -172,6 +172,8 @@
 
 ## 7. C++ 底层加速（`csrc/`、`build_moe_ops.py`、`test_moe_ops.py`）
 
+> ⛔ **不推荐选项**。保留代码仅作诚实记录与 PyTorch 数值对齐参考，非主线投入；真正部署用 llama.cpp/ggml 即可。
+
 针对 **GTX 1060**，把热点算子（router 打分 + 逐专家 MLP 前向）下沉到 C++，支撑部署层落地。
 
 ### 7.1 实现

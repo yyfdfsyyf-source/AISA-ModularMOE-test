@@ -38,8 +38,16 @@
 | `m4_test.py` | 扩展：4 领域 → 4 专家路由 |
 | `eval_generation.py` | 端到端生成质量：专家能力(loss) vs 路由选择 + 短文本生成 |
 | `qwen_moe.py` | 核心 MoE 结构（专家同源初始化 / 路由模式 / 输入捕获） |
-| `csrc/` + `build_moe_ops.py` | C++ 底层算子（router+expert MLP，CPU/CUDA 自动分发） |
-| `test_moe_ops.py` | C++ 算子正确性对齐 + CPU benchmark |
+| `csrc/` + `build_moe_ops.py` | C++ 底层算子（router+expert MLP，CPU/CUDA 自动分发） **【不推荐选项，见下】** |
+| `test_moe_ops.py` | C++ 算子正确性对齐 + CPU benchmark **【不推荐选项，见下】** |
+
+## 不推荐选项：C++ 底层加速
+
+> ⛔ **不推荐作为主线投入**。保留代码仅作诚实记录与 PyTorch 数值对齐参考。
+
+- **CPU 实测未提速**：朴素 C++ 核（0.01×）被 PyTorch 底层 oneDNN/BLAS 碾压。
+- **CUDA 路径未验证**：本环境无 GPU，`moe_ops.cu`（cuBLAS）未实际编译运行。
+- **部署更优解**：真要在 GTX 1060 部署，直接用 **llama.cpp / ggml**（原生支持 Qwen + MoE + int8/int4 量化，2B 压到 ~2GB）即可，不必自研算子。
 
 ## 复现
 
@@ -50,7 +58,7 @@ python3 opt_routing.py
 python3 m3_test.py
 python3 m4_test.py
 python3 eval_generation.py
-python3 test_moe_ops.py       # 会 JIT 编译 C++ 算子（无 CUDA 时 CPU-only）
+# 【不推荐】python3 test_moe_ops.py   # C++ 算子对齐 + benchmark，仅调试用
 ```
 
 > 详细数据与结论见报告 `技术报告_域隔离双专家MoE路由.md`。
