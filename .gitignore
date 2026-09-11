@@ -1,0 +1,6 @@
+# 模型权重/大文件不入库
+models/
+*.safetensors
+*.bin
+__pycache__/
+*.pyc
