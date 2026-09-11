@@ -26,6 +26,8 @@
 | 2 专家（语文/数学） | 线性门 **100%**；+领域监督 **100%**，置信度更高 |
 | 2 专家相近域（散文/说理） | 线性门 **100%**；非线性门 **60%**（坍缩，弱监督下不适合） |
 | 4 专家（语/数/历/生） | 仅 LM **98%**；+领域监督 **100%** |
+| 端到端生成质量 | 路由选中的专家 = loss 更优专家 **8/8**；语文续出"一尊还酹江月"、数学解得"x=2或3" |
+| 跨领域综合题 | 路由版 6 类题 PPL 全面更低、续写更流畅、数学正确解题（平均低 **0.362**）；不新增世界知识、有上界 |
 
 ## 脚本说明
 
@@ -37,6 +39,7 @@
 | `m3_test.py` | 线性门 vs 非线性门（相近领域）反证 |
 | `m4_test.py` | 扩展：4 领域 → 4 专家路由 |
 | `eval_generation.py` | 端到端生成质量：专家能力(loss) vs 路由选择 + 短文本生成 |
+| `bench_intelligence.py` | 跨领域综合题：路由版 vs 原始基座（PPL/续写），考察对整体能力的影响 |
 | `qwen_moe.py` | 核心 MoE 结构（专家同源初始化 / 路由模式 / 输入捕获） |
 | `csrc/` + `build_moe_ops.py` | C++ 底层算子（router+expert MLP，CPU/CUDA 自动分发） **【不推荐选项，见下】** |
 | `test_moe_ops.py` | C++ 算子正确性对齐 + CPU benchmark **【不推荐选项，见下】** |
@@ -58,6 +61,7 @@ python3 opt_routing.py
 python3 m3_test.py
 python3 m4_test.py
 python3 eval_generation.py
+python3 bench_intelligence.py
 # 【不推荐】python3 test_moe_ops.py   # C++ 算子对齐 + benchmark，仅调试用
 ```
 
